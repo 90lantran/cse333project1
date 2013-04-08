@@ -1,0 +1,9 @@
+libhw1.a
+example_program_ht
+example_program_ll
+test_suite
+image_hist
+*.o
+*.gcda
+*.gcno
+*.gcov
