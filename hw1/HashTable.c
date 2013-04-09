@@ -156,7 +156,6 @@ int InsertHashTable(HashTable table,
                     HTKeyValue *oldkeyvalue) {
   uint32_t insertbucket;
   LinkedList insertchain;
-	LLIter iter;
 
   Assert333(table != NULL);
   ResizeHashtable(table);
@@ -175,6 +174,30 @@ int InsertHashTable(HashTable table,
 	Assert333(insertchain != NULL);
 	HTKeyValuePtr payload_ptr = (HTKeyValuePtr) malloc(sizeof(HTKeyValue));
 	if (payload_ptr == NULL) {
+		// return failure
+		return 0;
+	}
+
+	if (NumElementsInLinkedList(insertchain) == 0) {
+		// degenerate case; bucket is empty
+		*payload_ptr = newkeyvalue;
+		if (AppendLinkedList(insertchain, (void *) payload_ptr)) {
+			// return success
+			return 1;
+		} else {
+			// append failed; return failure and prevent memory leak
+			free(payload_ptr);
+			payload_ptr = NULL;
+			return 0;
+		}
+	}
+	
+	// list has >= 1 elements
+	LLIter iter = LLMakeIterator(insertchain, 0);
+	if (iter == NULL) {
+		// failed to create iterator; return failure and prevent memoery leak
+		free(payload_ptr);
+		payload_ptr = NULL;
 		return 0;
 	}
 	
@@ -220,33 +243,18 @@ int InsertHashTable(HashTable table,
 }
 
 int LookupKey(LinkedList list, uint64_t key, LLIter iter/*, bool remove*/) {
-	Assert333(list != NULL);
+	// continue with procedure with valid iterator pointing to the head
+	// of a list with >= 1 elements
+	HTKeyValue *payload;
+	LLIteratorGetPayload(iter, (void **) &payload);
 	
-	if (NumElementsInLinkedList(list) == 0) {
-		//  empty list; return key not found
-		return 0;
+	while (payload->key != key) {
+		if (!LLIteratorNext(iter))
+			return 0;
 	}
-
-	// get a LinkedList iterator starting from its head
-	iter = LLMakeIterator(list, 0);
-
-	if (iter == NULL) {
-		// since the list wasn't empty, implies memory error
-		return -1;
-	} else {
-		// continue with procedure with valid iterator pointing to the head
-		// of a list with >= 1 elements
-		HTKeyValue *payload;
-		LLIteratorGetPayload(iter, (void **) &payload);
-		
-		while (payload->key != key) {
-			if (!LLIteratorNext(iter))
-				return 0;
-		}
-		
-		// return success
-		return 1;
-	}
+	
+	// return success
+	return 1;
 }
 
 int LookupHashTable(HashTable table,

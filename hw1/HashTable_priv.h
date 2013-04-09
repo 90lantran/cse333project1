@@ -61,7 +61,6 @@ uint64_t HashKeyToBucketNum(HashTable ht, uint64_t key);
 //	 contains the keyvalue is returned to the caller via this parameter 
 //
 // Returns:
-// - -1 if there was an error (e.g., out of memory)
 //
 // - 0 if the key was not found in the list
 //
