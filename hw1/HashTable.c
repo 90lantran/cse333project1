@@ -156,7 +156,7 @@ int InsertHashTable(HashTable table,
                     HTKeyValue *oldkeyvalue) {
   uint32_t insertbucket;
   LinkedList insertchain;
-	LLIter *iter;
+	LLIter iter;
 
   Assert333(table != NULL);
   ResizeHashtable(table);
@@ -178,7 +178,7 @@ int InsertHashTable(HashTable table,
 		return 0;
 	}
 	
-	int result = LookupKey(insertchain, newkeyvalue->key, iter);
+	int result = LookupKey(insertchain, newkeyvalue.key, iter);
 	if (result == -1) {
 		// prevent memory leak and return failure
 		free(payload_ptr);
@@ -188,7 +188,8 @@ int InsertHashTable(HashTable table,
 		return 0;
 	} else if (result == 0) {
 		// no existing key/value with that key; append new keyvalue to list
-		if (AppendLinkedList(insertchain, (void *) newkeyvalue)) {
+		*payload_ptr = newkeyvalue;
+		if (AppendLinkedList(insertchain, (void *) payload_ptr)) {
 			LLIteratorFree(iter);
 			iter = NULL;
 			// return success
@@ -204,28 +205,30 @@ int InsertHashTable(HashTable table,
 	} else {
 		// found existing key/value with that key; replace keyvalue
 		//TODO
-		// 1) copy over the values
-		// 2) 'replace' with the new node
-		// 2) free the old node, free the keyvalue
-		// copy over the values of the HTKeyValue stored in oldnode
-		oldkeyvalue->value = iter->node->payload->value;
-		iter->node->payload->value = newkeyvalue->value;
+		HTKeyValue *payload;
+		LLIteratorGetPayload(iter, (void **) &payload);
+
+		*oldkeyvalue = *payload;
+		payload->value = newkeyvalue.value; 
+		
+		free(payload_ptr);
+		payload_ptr = NULL;
 		LLIteratorFree(iter);
 		iter = NULL;
 		return 2;
 	}
 }
 
-int LookupKey(LinkedList list, uint64_t key, LLIter *iter/*, bool remove*/) {
-	Assert(list != NULL);
+int LookupKey(LinkedList list, uint64_t key, LLIter iter/*, bool remove*/) {
+	Assert333(list != NULL);
 	
-	if (list->num_elements == 0) {
+	if (NumElementsInLinkedList(list) == 0) {
 		//  empty list; return key not found
 		return 0;
 	}
 
 	// get a LinkedList iterator starting from its head
-	*iter = LLMakeIterator(list, 0);
+	iter = LLMakeIterator(list, 0);
 
 	if (iter == NULL) {
 		// since the list wasn't empty, implies memory error
@@ -233,11 +236,11 @@ int LookupKey(LinkedList list, uint64_t key, LLIter *iter/*, bool remove*/) {
 	} else {
 		// continue with procedure with valid iterator pointing to the head
 		// of a list with >= 1 elements
-		HTKeyValue **payload;
-		LLIteratorGetPayload(*iter, (void **) payload);
+		HTKeyValue *payload;
+		LLIteratorGetPayload(iter, (void **) &payload);
 		
-		while (*payload->key != key) {
-			if (!LLIteratorNext(*iter))
+		while (payload->key != key) {
+			if (!LLIteratorNext(iter))
 				return 0;
 		}
 		
