@@ -177,82 +177,80 @@ int InsertHashTable(HashTable table,
 		// return failure
 		return 0;
 	}
+	
+	// assign appropriate values for the new HTKeyValue to insert
+	payload_ptr->key = newkeyvalue.key;
+	payload_ptr->value = newkeyvalue.value;
 
 	if (NumElementsInLinkedList(insertchain) == 0) {
-		// degenerate case; bucket is empty
-		*payload_ptr = newkeyvalue;
+		// empty bucket; no need to search for recurring key
 		if (AppendLinkedList(insertchain, (void *) payload_ptr)) {
-			// return success
+			// append success; return success
 			return 1;
 		} else {
-			// append failed; return failure and prevent memory leak
+			// append failed; prevent memory leak and return failure
 			free(payload_ptr);
 			payload_ptr = NULL;
-			return 0;
-		}
-	}
-	
-	// list has >= 1 elements
-	LLIter iter = LLMakeIterator(insertchain, 0);
-	if (iter == NULL) {
-		// failed to create iterator; return failure and prevent memoery leak
-		free(payload_ptr);
-		payload_ptr = NULL;
-		return 0;
-	}
-	
-	int result = LookupKey(insertchain, newkeyvalue.key, iter);
-	if (result == -1) {
-		// prevent memory leak and return failure
-		free(payload_ptr);
-		payload_ptr = NULL;
-		LLIteratorFree(iter);
-		iter = NULL;
-		return 0;
-	} else if (result == 0) {
-		// no existing key/value with that key; append new keyvalue to list
-		*payload_ptr = newkeyvalue;
-		if (AppendLinkedList(insertchain, (void *) payload_ptr)) {
-			LLIteratorFree(iter);
-			iter = NULL;
-			// return success
-			return 1;
-		} else {
-			// append failed; return failure and prevent memory leak
-			free(payload_ptr);
-			payload_ptr = NULL;
-			LLIteratorFree(iter);
-			iter = NULL;
 			return 0;
 		}
 	} else {
-		// found existing key/value with that key; replace keyvalue
-		HTKeyValue *payload;
-		LLIteratorGetPayload(iter, (void **) &payload);
+		// bucket has >= 1 elements; search for recurring key before insert
+		HTKeyValue *recurringKeyValue;
+		int result = LookupKey(insertchain, newkeyvalue.key, &recurringKeyValue);
+		if (result == -1) {
+			// error while looking up key; prevent memory leak and return failure
+			free(payload_ptr);
+			payload_ptr = NULL;
+			return 0;
+		} else if (result == 0) {
+			// no existing key/value with that key; append new keyvalue to list
+			if (AppendLinkedList(insertchain, (void *) payload_ptr)) {
+				// return success
+				return 1;
+			} else {
+				// append failed; return failure and prevent memory leak
+				free(payload_ptr);
+				payload_ptr = NULL;
+				return 0;
+			}
+		} else {
+			// need to FREE(OLDHTKEYVALUE)
 
-		*oldkeyvalue = *payload;
-		payload->value = newkeyvalue.value; 
-		
-		free(payload_ptr);
-		payload_ptr = NULL;
-		LLIteratorFree(iter);
-		iter = NULL;
-		return 2;
+			// found existing key/value with that key; replace keyvalue
+			*oldkeyvalue = *recurringKeyValue;
+			recurringKeyValue->value = (void *) newkeyvalue.value;
+			
+			free(payload_ptr);
+			payload_ptr = NULL;
+			return 2;
+		}
 	}
 }
 
-int LookupKey(LinkedList list, uint64_t key, LLIter iter/*, bool remove*/) {
+int LookupKey(LinkedList list, uint64_t key, HTKeyValue **oldkeyvalue/*, bool remove*/) {
 	// continue with procedure with valid iterator pointing to the head
 	// of a list with >= 1 elements
-	HTKeyValue *payload;
-	LLIteratorGetPayload(iter, (void **) &payload);
+
+	// make an iterator pointed to the head of the list
+	LLIter iter = LLMakeIterator(list, 0);
+
+	if (iter == NULL) {
+		// failed to create iterator; return failure
+		return -1;
+	}
+
+	LLIteratorGetPayload(iter, (void **) oldkeyvalue);
 	
-	while (payload->key != key) {
-		if (!LLIteratorNext(iter))
+	while ((*oldkeyvalue)->key != key) {
+		if (!LLIteratorNext(iter)) {
+			// searched through all of the bucket; return not found
 			return 0;
+		} else {
+			LLIteratorGetPayload(iter, (void **) oldkeyvalue);
+		}
 	}
 	
-	// return success
+	// return found
 	return 1;
 }
 
