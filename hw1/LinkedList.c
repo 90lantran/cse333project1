@@ -377,18 +377,20 @@ bool LLIteratorDelete(LLIter iter,
   // Be sure to call the payload_free_function to free the payload
   // the iterator is pointing to, and also free any LinkedList
   // data structure element as appropriate.
+
+	// free the payload of the current node
+	payload_free_function(iter->node->payload);
+
 	if (LLIteratorHasNext(iter) && LLIteratorHasPrev(iter)) {
 		// fully general case: iter points in the middle of a list
 		LinkedListNodePtr successor = iter->node->next;
 		successor->prev = iter->node->prev;
 		iter->node->prev->next = successor;
-		payload_free_function(iter->node->payload);
 		free(iter->node);
 		iter->node = successor;
 		iter->list->num_elements--;
 	} else if (LLIteratorHasNext(iter)) {
 		// degenerate case: iter points at head
-		payload_free_function(iter->node->payload);
 		iter->node = iter->node->next;
 		iter->list->head = iter->node;
 		free(iter->node->prev);
@@ -396,7 +398,6 @@ bool LLIteratorDelete(LLIter iter,
 		iter->list->num_elements--;
 	} else if (LLIteratorHasPrev(iter)) {
 		// degenerate case: iter points at tail
-		payload_free_function(iter->node->payload);
 		iter->node = iter->node->prev;
 		iter->list->tail = iter->node;
 		free(iter->node->next);
@@ -404,7 +405,6 @@ bool LLIteratorDelete(LLIter iter,
 		iter->list->num_elements--;
 	} else {
 		// degenerate case: the list becomes empty after deleting
-		payload_free_function(iter->node->payload);
 		iter->list->head = iter->list->tail = NULL;
 		iter->list->num_elements--;
 		free(iter->node);
