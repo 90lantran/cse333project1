@@ -59,6 +59,7 @@ void FreeLinkedList(LinkedList list,
 
   // free the list record
   free(list);
+	list = NULL;
 }
 
 uint64_t NumElementsInLinkedList(LinkedList list) {
@@ -131,10 +132,11 @@ bool PopLinkedList(LinkedList list, void **payload_ptr) {
 		list->head = list->tail = NULL;
 	} else {
 		// typical case; list has >= 2 elements
-		LinkedListNodePtr head = list->head->next;
-		free(list->head);
-		list->head = head;
+		LinkedListNodePtr oldHead = list->head;
+		list->head = oldHead->next;
 		list->head->prev = NULL;
+		free(oldHead);
+		oldHead = NULL;
 	}
 	list->num_elements--;
 
@@ -202,10 +204,12 @@ bool SliceLinkedList(LinkedList list, void **payload_ptr) {
 		list->head = list->tail = NULL;
 	} else {
 		// typical case; list has >= 2 elements
-		LinkedListNodePtr tail = list->tail->prev;
-		free(list->tail);
-		list->tail = tail;
+		LinkedListNodePtr oldTail = list->tail;
+		list->tail = oldTail->prev;
 		list->tail->next = NULL;
+		free(oldTail);
+		oldTail = NULL;
+		
 	}
 	list->num_elements--;
 
@@ -373,39 +377,45 @@ bool LLIteratorDelete(LLIter iter,
   // Be sure to call the payload_free_function to free the payload
   // the iterator is pointing to, and also free any LinkedList
   // data structure element as appropriate.
-	
-	payload_free_function(iter->node->payload);
-	
-	if (iter->node->prev == NULL && iter->node->next == NULL) {
-		// degenerate case; list will become empty
-		// deallocate the list and return false
-		FreeLinkedList(iter->list, payload_free_function);
-		return false;
+	if (LLIteratorHasNext(iter) && LLIteratorHasPrev(iter)) {
+		// fully general case: iter points in the middle of a list
+		LinkedListNodePtr successor = iter->node->next;
+		successor->prev = iter->node->prev;
+		iter->node->prev->next = successor;
+		payload_free_function(iter->node->payload);
+		free(iter->node);
+		iter->node = successor;
+		iter->list->num_elements--;
+	} else if (LLIteratorHasNext(iter)) {
+		// degenerate case: iter points at head
+		payload_free_function(iter->node->payload);
+		iter->node = iter->node->next;
+		iter->list->head = iter->node;
+		free(iter->node->prev);
+		iter->node->prev = NULL;
+		iter->list->num_elements--;
+	} else if (LLIteratorHasPrev(iter)) {
+		// degenerate case: iter points at tail
+		payload_free_function(iter->node->payload);
+		iter->node = iter->node->prev;
+		iter->list->tail = iter->node;
+		free(iter->node->next);
+		iter->node->next = NULL;
+		iter->list->num_elements--;
 	} else {
-		if (iter->node->prev == NULL) {
-			// degenerate case; itr points at head
-			iter->list->head = iter->list->head->next;
-			free(iter->node);
-			iter->list->head->prev = NULL;
-			iter->node = iter->list->head;
-		} else if (iter->node->next == NULL) {
-			// degenerate case; itr points at tail
-			iter->list->tail = iter->list->tail->prev;
-			free(iter->node);
-			iter->list->tail->next = NULL;
-			iter->node = iter->list->tail;
-		} else {
-			// general case; itr points at middle
-			LinkedListNodePtr successor = iter->node->next;
-			successor->prev = iter->node->prev;
-			iter->node->prev->next = successor;
-			free(iter->node);
-			iter->node = successor;
-		}
+		// degenerate case: the list becomes empty after deleting
+		payload_free_function(iter->node->payload);
+		iter->list->head = iter->list->tail = NULL;
+		iter->list->num_elements--;
+		free(iter->node);
+		iter->node = NULL;
 
-		// return success
-		return true;
+		// return failure
+		return false;
 	}
+
+	// return success
+	return true;
 }
 
 bool LLIteratorInsertBefore(LLIter iter, void *payload) {
