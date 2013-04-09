@@ -164,17 +164,12 @@ int InsertHashTable(HashTable table,
   // grab its linked list chain
   insertbucket = HashKeyToBucketNum(table, newkeyvalue.key);
   insertchain = table->buckets[insertbucket];
-
-  // Step 1 -- finish the implementation of InsertHashTable.
-  // This is a fairly complex task, so you might decide you want
-  // to define/implement a helper function that helps you find
-  // and optionally remove a key within a chain, rather than putting
-  // all that logic inside here.  You might also find that your helper
-  // can be reused in steps 2 and 3.
 	Assert333(insertchain != NULL);
+
+	// prep the new element to insert to the chain
 	HTKeyValuePtr payload_ptr = (HTKeyValuePtr) malloc(sizeof(HTKeyValue));
 	if (payload_ptr == NULL) {
-		// return failure
+		// allocation failed; return failure
 		return 0;
 	}
 	
@@ -183,7 +178,7 @@ int InsertHashTable(HashTable table,
 	payload_ptr->value = newkeyvalue.value;
 
 	if (NumElementsInLinkedList(insertchain) == 0) {
-		// empty bucket; no need to search for recurring key
+		// empty chain; no need to search for recurring key
 		if (AppendLinkedList(insertchain, (void *) payload_ptr)) {
 			// append success; increment num_elements and return success
 			table->num_elements++;
@@ -195,9 +190,9 @@ int InsertHashTable(HashTable table,
 			return 0;
 		}
 	} else {
-		// bucket has >= 1 elements; search for recurring key before insert
-		HTKeyValue *recurringKeyValue;
-		int result = LookupKey(insertchain, newkeyvalue.key, &recurringKeyValue);
+		// chain has >= 1 elements; search for recurring key before insert
+		HTKeyValue *recurringkeyvalue;
+		int result = LookupKey(insertchain, newkeyvalue.key, &recurringkeyvalue, false);
 		if (result == -1) {
 			// error while looking up key; prevent memory leak and return failure
 			free(payload_ptr);
@@ -217,8 +212,8 @@ int InsertHashTable(HashTable table,
 			}
 		} else {
 			// found existing key/value with that key; replace keyvalue
-			*oldkeyvalue = *recurringKeyValue;
-			recurringKeyValue->value = (void *) newkeyvalue.value;
+			*oldkeyvalue = *recurringkeyvalue;
+			recurringkeyvalue->value = (void *) newkeyvalue.value;
 			
 			free(payload_ptr);
 			payload_ptr = NULL;
@@ -227,20 +222,17 @@ int InsertHashTable(HashTable table,
 	}
 }
 
-int LookupKey(LinkedList list, uint64_t key, HTKeyValue **resultkeyvalue/*, bool remove*/) {
-	// continue with procedure with valid iterator pointing to the head
-	// of a list with >= 1 elements
-
+int LookupKey(LinkedList chain, uint64_t key, HTKeyValue **resultkeyvalue, bool removeonfind) {
 	// make an iterator pointed to the head of the list
-	LLIter iter = LLMakeIterator(list, 0);
+	LLIter iter = LLMakeIterator(chain, 0);
 
 	if (iter == NULL) {
 		// failed to create iterator; return failure
 		return -1;
 	}
 
+	// iterate through the bucket to find the element with the specified key
 	LLIteratorGetPayload(iter, (void **) resultkeyvalue);
-	
 	while ((*resultkeyvalue)->key != key) {
 		if (!LLIteratorNext(iter)) {
 			// searched through all of the bucket; return not found
@@ -251,7 +243,12 @@ int LookupKey(LinkedList list, uint64_t key, HTKeyValue **resultkeyvalue/*, bool
 			LLIteratorGetPayload(iter, (void **) resultkeyvalue);
 		}
 	}
-	
+
+	// optionally remove the found element
+	if (removeonfind) {
+		LLIteratorDelete(iter, NullFree);
+	}
+
 	// return found
 	LLIteratorFree(iter);
 	iter = NULL;
@@ -263,10 +260,8 @@ int LookupHashTable(HashTable table,
                     HTKeyValue *keyvalue) {
   uint32_t insertbucket;
   LinkedList insertchain;
-
+	HTKeyValue *resultkeyvalue;
   Assert333(table != NULL);
-
-  // Step 2 -- implement LookupHashTable.
 
   // calculate which bucket we're inserting into,
   // grab its linked list chain
@@ -274,14 +269,12 @@ int LookupHashTable(HashTable table,
   insertchain = table->buckets[insertbucket];
 	Assert333(insertchain != NULL);
 
-	HTKeyValue *resultkeyvalue;
-	
 	if (NumElementsInLinkedList(insertchain) == 0) {
-		// empty bucket; return not found
+		// empty chain; return not found
 		return 0;
 	} else {
-		// bucket has >= 1 elements; search the bucket
-		int result = LookupKey(insertchain, key, &resultkeyvalue);
+		// chain has >= 1 elements; search the chain
+		int result = LookupKey(insertchain, key, &resultkeyvalue, false);
 		// copy the payload if found
 		if (result == 1)
 			*keyvalue = *resultkeyvalue;
@@ -292,11 +285,31 @@ int LookupHashTable(HashTable table,
 int RemoveFromHashTable(HashTable table,
                         uint64_t key,
                         HTKeyValue *keyvalue) {
+  uint32_t insertbucket;
+  LinkedList insertchain;
+	HTKeyValue *resultkeyvalue;
   Assert333(table != NULL);
 
-  // Step 3 -- impelment RemoveFromHashTable.
+	// calculate which bucket we're inserting into,
+	// grab its linked list chain
+	insertbucket = HashKeyToBucketNum(table, key);
+	insertchain = table->buckets[insertbucket];
+	Assert333(insertchain != NULL);
 
-  return 0;  // you may need to change this return value.
+	if (NumElementsInLinkedList(insertchain) == 0) {
+		// nothing to remove; return failure
+		return -1;
+	} else {
+		// chain has >= elements; search the chain and remove
+		int result = LookupKey(insertchain, key, &resultkeyvalue, true);
+		// copy/free the payload if remove was successful
+		if (result == 1) {
+			*keyvalue = *resultkeyvalue;
+			free(resultkeyvalue);
+			resultkeyvalue = NULL;
+		}
+		return result;
+	}
 }
 
 HTIter HashTableMakeIterator(HashTable table) {

@@ -32,7 +32,6 @@ LinkedList AllocateLinkedList(void) {
     return (LinkedList) NULL;
   }
 
-  // Step 1.
   // initialize the newly allocated record structure
 	ll->num_elements = 0U;
 	ll->head = ll->tail = NULL;
@@ -47,7 +46,6 @@ void FreeLinkedList(LinkedList list,
   Assert333(list != NULL);
   Assert333(payload_free_function != NULL);
 
-  // Step 2.
   // sweep through the list and free all of the nodes' payloads as
   // well as the nodes themselves
   while (list->head != NULL) {
@@ -95,7 +93,6 @@ bool PushLinkedList(LinkedList list, void *payload) {
     return true;
   }
 
-  // STEP 3.
   // typical case; list has >=1 elements
 	list->num_elements++;
 	list->head->prev = ln;
@@ -112,14 +109,8 @@ bool PopLinkedList(LinkedList list, void **payload_ptr) {
   Assert333(payload_ptr != NULL);
   Assert333(list != NULL);
 
-  // Step 4: implement PopLinkedList.  Make sure you test for
-  // and empty list and fail.  If the list is non-empty, there
-  // are two cases to consider: (a) a list with a single element in it
-  // and (b) the general case of a list with >=2 elements in it.
-  // Be sure to call free() to deallocate the memory that was
-  // previously allocated by PushLinkedList().
 	if (list->num_elements == 0) {
-		// popping on an empty list results in failure
+		// called pop on an empty list; return failure
 		return false;
 	}
 	
@@ -148,15 +139,11 @@ bool AppendLinkedList(LinkedList list, void *payload) {
   // defensive programming: check argument for safety.
   Assert333(list != NULL);
 
-  // Step 5: implement AppendLinkedList.  It's kind of like
-  // PushLinkedList, but obviously you need to add to the end
-  // instead of the beginning.
-
   // allocate space for the new node.
   LinkedListNodePtr ln =
     (LinkedListNodePtr) malloc(sizeof(LinkedListNode));
   if (ln == NULL) {
-    // out of memory
+    // out of memory; return failure
     return false;
   }
 
@@ -170,6 +157,8 @@ bool AppendLinkedList(LinkedList list, void *payload) {
     ln->next = ln->prev = NULL;
     list->head = list->tail = ln;
     list->num_elements = 1U;
+
+		// return success
     return true;
   }
 
@@ -189,9 +178,8 @@ bool SliceLinkedList(LinkedList list, void **payload_ptr) {
   Assert333(payload_ptr != NULL);
   Assert333(list != NULL);
 
-  // Step 6: implement SliceLinkedList.
 	if (list->num_elements == 0) {
-		// popping on an empty list results in failure
+		// called slice on an empty list; return failure
 		return false;
 	}
 
@@ -304,7 +292,7 @@ bool LLIteratorNext(LLIter iter) {
   Assert333(iter->list != NULL);
   Assert333(iter->node != NULL);
 
-  // Step 7: if there is another node beyond the iterator, advance to it,
+  // if there is another node beyond the iterator, advance to it,
   // and return true.
 	if (iter->list->tail != iter->node) {
 		// iterator not on the tail; iterate to the next node
@@ -335,7 +323,7 @@ bool LLIteratorPrev(LLIter iter) {
   Assert333(iter->list != NULL);
   Assert333(iter->node != NULL);
 
-  // Step 8:  if there is another node beyond the iterator, advance to it,
+  // if there is another node beyond the iterator, advance to it,
   // and return true.
 	if (iter->list->head != iter->node) {
 		// iterator not on the head; iterate to the previous node
@@ -363,20 +351,6 @@ bool LLIteratorDelete(LLIter iter,
   Assert333(iter != NULL);
   Assert333(iter->list != NULL);
   Assert333(iter->node != NULL);
-
-  // Step 9: implement LLIteratorDelete.  This is the most
-  // complex function you'll build.  There are several cases
-  // to consider:
-  //
-  // - degenerate case: the list becomes empty after deleting.
-  // - degenerate case: iter points at head
-  // - degenerate case: iter points at tail
-  // - fully general case: iter points in the middle of a list,
-  //                       and you have to "splice".
-  //
-  // Be sure to call the payload_free_function to free the payload
-  // the iterator is pointing to, and also free any LinkedList
-  // data structure element as appropriate.
 
 	// free the payload of the current node
 	payload_free_function(iter->node->payload);
