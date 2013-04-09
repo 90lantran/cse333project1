@@ -34,9 +34,8 @@ LinkedList AllocateLinkedList(void) {
 
   // Step 1.
   // initialize the newly allocated record structure
-	ll->num_elements = 0;
-	ll->head = NULL;
-	ll->tail = NULL;
+	ll->num_elements = 0U;
+	ll->head = ll->tail = NULL;
 
   // return our newly minted linked list
   return ll;
@@ -129,17 +128,15 @@ bool PopLinkedList(LinkedList list, void **payload_ptr) {
 	if (list->num_elements == 1) {
 		// edge case; a list with single element
 		free(list->head);
-		free(list);
-		list->head = NULL;
-		list = NULL;
+		list->head = list->tail = NULL;
 	} else {
 		// typical case; list has >= 2 elements
 		LinkedListNodePtr head = list->head->next;
 		free(list->head);
 		list->head = head;
 		list->head->prev = NULL;
-		list->num_elements--;
 	}
+	list->num_elements--;
 
 	// return success
   return true;
@@ -191,6 +188,10 @@ bool SliceLinkedList(LinkedList list, void **payload_ptr) {
   Assert333(list != NULL);
 
   // Step 6: implement SliceLinkedList.
+	if (list->num_elements == 0) {
+		// popping on an empty list results in failure
+		return false;
+	}
 
 	// copy the value of the payload to return
 	*payload_ptr = list->tail->payload;
@@ -198,17 +199,15 @@ bool SliceLinkedList(LinkedList list, void **payload_ptr) {
 	if (list->num_elements == 1) {
 		// edge case; a list with single element
 		free(list->tail);
-		free(list);
-		list->tail = NULL;
-		list = NULL;
+		list->head = list->tail = NULL;
 	} else {
 		// typical case; list has >= 2 elements
 		LinkedListNodePtr tail = list->tail->prev;
 		free(list->tail);
 		list->tail = tail;
 		list->tail->next = NULL;
-		list->num_elements--;
 	}
+	list->num_elements--;
 
 	// return success
   return true;
