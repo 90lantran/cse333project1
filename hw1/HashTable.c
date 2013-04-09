@@ -227,7 +227,6 @@ int InsertHashTable(HashTable table,
 		}
 	} else {
 		// found existing key/value with that key; replace keyvalue
-		//TODO
 		HTKeyValue *payload;
 		LLIteratorGetPayload(iter, (void **) &payload);
 
