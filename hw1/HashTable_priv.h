@@ -49,22 +49,28 @@ typedef struct ht_itrec {
 uint64_t HashKeyToBucketNum(HashTable ht, uint64_t key);
 
 // This is an internal helper function used to check if a certain key is already
-// mapped to a value in the given LinkedList.
+// mapped to a value in the given LinkedList, and optionally remove it if the caller
+// wishes to.
 //
 // Arguments:
 //
-// - list: the LinkedList to look through
+// - chain: the LinkedList to look through
 //
 // - key: the key to look up
 //
-// - iter: if the key is present, the pointer to the linked list node that 
-//	 contains the keyvalue is returned to the caller via this parameter 
+// - resultkeyvalue: if the key is present, the pointer to the payload is passed
+//   via this parameter
+//
+// - removeonfind: if the function finds the target payload, it also removes it if
+//   this parameter is set to true
 //
 // Returns:
+//
+// - -1 if there was an err (e.g., out of memory)
 //
 // - 0 if the key was not found in the list
 //
 // - +1 if the key was found in the list
-int LookupKey(LinkedList list, uint64_t key, HTKeyValue **resultkeyvalue);
+int LookupKey(LinkedList chain, uint64_t key, HTKeyValue **resultkeyvalue, bool removeonfind);
 
 #endif  // _HW1_HASHTABLE_PRIV_H_
