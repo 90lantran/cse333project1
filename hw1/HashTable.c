@@ -185,7 +185,8 @@ int InsertHashTable(HashTable table,
 	if (NumElementsInLinkedList(insertchain) == 0) {
 		// empty bucket; no need to search for recurring key
 		if (AppendLinkedList(insertchain, (void *) payload_ptr)) {
-			// append success; return success
+			// append success; increment num_elements and return success
+			table->num_elements++;
 			return 1;
 		} else {
 			// append failed; prevent memory leak and return failure
@@ -205,7 +206,8 @@ int InsertHashTable(HashTable table,
 		} else if (result == 0) {
 			// no existing key/value with that key; append new keyvalue to list
 			if (AppendLinkedList(insertchain, (void *) payload_ptr)) {
-				// return success
+				// append success; increment num_elements and return success
+				table->num_elements++;
 				return 1;
 			} else {
 				// append failed; return failure and prevent memory leak
@@ -214,8 +216,6 @@ int InsertHashTable(HashTable table,
 				return 0;
 			}
 		} else {
-			// need to FREE(OLDHTKEYVALUE)
-
 			// found existing key/value with that key; replace keyvalue
 			*oldkeyvalue = *recurringKeyValue;
 			recurringKeyValue->value = (void *) newkeyvalue.value;
@@ -227,7 +227,7 @@ int InsertHashTable(HashTable table,
 	}
 }
 
-int LookupKey(LinkedList list, uint64_t key, HTKeyValue **oldkeyvalue/*, bool remove*/) {
+int LookupKey(LinkedList list, uint64_t key, HTKeyValue **resultkeyvalue/*, bool remove*/) {
 	// continue with procedure with valid iterator pointing to the head
 	// of a list with >= 1 elements
 
@@ -239,30 +239,54 @@ int LookupKey(LinkedList list, uint64_t key, HTKeyValue **oldkeyvalue/*, bool re
 		return -1;
 	}
 
-	LLIteratorGetPayload(iter, (void **) oldkeyvalue);
+	LLIteratorGetPayload(iter, (void **) resultkeyvalue);
 	
-	while ((*oldkeyvalue)->key != key) {
+	while ((*resultkeyvalue)->key != key) {
 		if (!LLIteratorNext(iter)) {
 			// searched through all of the bucket; return not found
+			LLIteratorFree(iter);
+			iter = NULL;
 			return 0;
 		} else {
-			LLIteratorGetPayload(iter, (void **) oldkeyvalue);
+			LLIteratorGetPayload(iter, (void **) resultkeyvalue);
 		}
 	}
 	
 	// return found
+	LLIteratorFree(iter);
+	iter = NULL;
 	return 1;
 }
 
 int LookupHashTable(HashTable table,
                     uint64_t key,
                     HTKeyValue *keyvalue) {
+  uint32_t insertbucket;
+  LinkedList insertchain;
+
   Assert333(table != NULL);
 
   // Step 2 -- implement LookupHashTable.
 
+  // calculate which bucket we're inserting into,
+  // grab its linked list chain
+  insertbucket = HashKeyToBucketNum(table, key);
+  insertchain = table->buckets[insertbucket];
+	Assert333(insertchain != NULL);
 
-  return 0;  // you may need to change this return value.
+	HTKeyValue *resultkeyvalue;
+	
+	if (NumElementsInLinkedList(insertchain) == 0) {
+		// empty bucket; return not found
+		return 0;
+	} else {
+		// bucket has >= 1 elements; search the bucket
+		int result = LookupKey(insertchain, key, &resultkeyvalue);
+		// copy the payload if found
+		if (result == 1)
+			*keyvalue = *resultkeyvalue;
+		return result;
+	}
 }
 
 int RemoveFromHashTable(HashTable table,

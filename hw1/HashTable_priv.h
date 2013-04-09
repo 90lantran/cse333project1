@@ -65,6 +65,6 @@ uint64_t HashKeyToBucketNum(HashTable ht, uint64_t key);
 // - 0 if the key was not found in the list
 //
 // - +1 if the key was found in the list
-int LookupKey(LinkedList list, uint64_t key, HTKeyValue **recurringKeyValue);
+int LookupKey(LinkedList list, uint64_t key, HTKeyValue **resultkeyvalue);
 
 #endif  // _HW1_HASHTABLE_PRIV_H_
