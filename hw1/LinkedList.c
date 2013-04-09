@@ -123,7 +123,7 @@ bool PopLinkedList(LinkedList list, void **payload_ptr) {
 		return false;
 	}
 	
-	// copy the value of the payload and free payload 
+	// copy the value of the payload to return
 	*payload_ptr = list->head->payload;
 
 	if (list->num_elements == 1) {
@@ -191,19 +191,22 @@ bool SliceLinkedList(LinkedList list, void **payload_ptr) {
   Assert333(list != NULL);
 
   // Step 6: implement SliceLinkedList.
+
+	// copy the value of the payload to return
 	*payload_ptr = list->tail->payload;
-	free(list->tail->payload);
 
 	if (list->num_elements == 1) {
 		// edge case; a list with single element
 		free(list->tail);
 		free(list);
+		list->tail = NULL;
+		list = NULL;
 	} else {
 		// typical case; list has >= 2 elements
 		LinkedListNodePtr tail = list->tail->prev;
 		free(list->tail);
 		list->tail = tail;
-		tail->next = NULL;
+		list->tail->next = NULL;
 		list->num_elements--;
 	}
 
