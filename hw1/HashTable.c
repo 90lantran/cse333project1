@@ -297,8 +297,8 @@ int RemoveFromHashTable(HashTable table,
 	Assert333(insertchain != NULL);
 
 	if (NumElementsInLinkedList(insertchain) == 0) {
-		// nothing to remove; return failure
-		return -1;
+		// nothing to remove; return not found
+		return 0;
 	} else {
 		// chain has >= elements; search the chain and remove
 		int result = LookupKey(insertchain, key, &resultkeyvalue, true);
@@ -307,6 +307,7 @@ int RemoveFromHashTable(HashTable table,
 			*keyvalue = *resultkeyvalue;
 			free(resultkeyvalue);
 			resultkeyvalue = NULL;
+			table->num_elements--;
 		}
 		return result;
 	}
@@ -365,20 +366,69 @@ void HTIteratorFree(HTIter iter) {
 
 int HTIteratorNext(HTIter iter) {
   Assert333(iter != NULL);
+	uint32_t i;
 
-  // Step 4 -- implement HTIteratorNext.
+	// check that the table is not empty/iterator is not past end
+	if (HTIteratorPastEnd(iter) == 1) {
+		iter->is_valid = false;
+		if (iter->bucket_it != NULL) {
+			LLIteratorFree(iter->bucket_it);
+    	iter->bucket_it = NULL;
+		}
+		return 0;
+	}
 
+	if (LLIteratorHasNext(iter->bucket_it)) {
+		// general case; there are elements in the current bucket to move on to
+		Assert333(LLIteratorNext(iter->bucket_it));
+		return 1;
+	}	
 
-  return 0;  // you might need to change this return value.
+	// iterator points to the tail of the current bucket
+  for (i = iter->bucket_num + 1; i < iter->ht->num_buckets; i++) {
+    if (NumElementsInLinkedList(table->buckets[i]) > 0) {
+      iter->bucket_num = i;
+      break;
+    }
+	}
+
+	// the old iterator must be freed
+	LLIteratorFree(iter->bucket_it);
+
+	if (i >= iter->ht->num_buckets) {
+		// degenerate case; the iterator has advanced past of the hash table; set invalid
+		iter->is_valid = false;
+    iter->bucket_it = NULL;
+    return 0;
+	} else {
+		// general case; the iterator moves onto the next bucket
+		iter->bucket_num = i;
+	  iter->bucket_it = LLMakeIterator(table->buckets[iter->bucket_num], 0UL);
+  	if (iter->bucket_it == NULL) {
+    	// out of memory!
+			iter->is_valid = false;
+    	return 0;
+ 		}
+
+		// return success
+  	return 1;
+	}
 }
 
 int HTIteratorPastEnd(HTIter iter) {
   Assert333(iter != NULL);
 
-  // Step 5 -- implement HTIteratorPastEnd.
+	if (iter->ht->num_elements == 0) {
+		// empty table; return past end
+		return 1;
+	}
 
-
-  return 0;  // you might need to change this return value.
+	// only invalid iterators are past the end of the table
+	if (iter->is_valid) {
+		return 0;
+	}	else {
+		return 1;
+	}
 }
 
 int HTIteratorGet(HTIter iter, HTKeyValue *keyvalue) {
