@@ -24,6 +24,24 @@
 #include "LinkedList.h"
 #include "LinkedList_priv.h"
 
+// Internal helper method that inserts a node into an empty linked list.
+// Prior to the call, the node must be already allocated and its payload
+// must be set. It must also be made sure that the list is empty.
+static void InsertFirstNode(LinkedList list, LinkedListNodePtr ln);
+
+// Internal helper method that either pushes to the head of the list, or
+// appends to the tail of the list, depending on the parameter value of push.
+// Prior to the call, the node must be already allocated and its payload
+// must be set. It must also be made sure that the list contains 1 or more
+// elements.
+static void PushOrAppendLinkedList(LinkedList list, LinkedListNodePtr ln, bool push);
+
+// Internal helper method that either pops the head of the list, or
+// slices the tail of the list, depending on the parameter value of pop.
+// Prior to the call, the parameters must be checked for non-nullness, and
+// also must be made sure that the list contains 1 or more elements.
+static void PopOrSliceLinkedList(LinkedList list, void **payload_ptr, bool pop);
+
 LinkedList AllocateLinkedList(void) {
   // allocate the linked list record
   LinkedList ll = (LinkedList) malloc(sizeof(LinkedListHead));
@@ -50,6 +68,7 @@ void FreeLinkedList(LinkedList list,
   // well as the nodes themselves
   while (list->head != NULL) {
 		payload_free_function(list->head->payload);
+		list->head->payload = NULL;
 		LinkedListNodePtr next = list->head->next;
 		free(list->head);
 		list->head = next;
@@ -71,6 +90,7 @@ bool PushLinkedList(LinkedList list, void *payload) {
   // argument can be anything, of course, so we need to make sure it's
   // reasonable (e.g., not NULL).
   Assert333(list != NULL);
+	Assert333(payload != NULL);
 
   // allocate space for the new node.
   LinkedListNodePtr ln =
@@ -84,23 +104,14 @@ bool PushLinkedList(LinkedList list, void *payload) {
   ln->payload = payload;
 
   if (list->num_elements == 0) {
-    // degenerate case; list is currently empty
-    Assert333(list->head == NULL);  // debugging aid
-    Assert333(list->tail == NULL);  // debugging aid
-    ln->next = ln->prev = NULL;
-    list->head = list->tail = ln;
-    list->num_elements = 1U;
-    return true;
-  }
+    // degenerate case; insert into empty list
+		InsertFirstNode(list, ln);
+  } else {
+  	// typical case; list has >=1 elements
+		PushOrAppendLinkedList(list, ln, true);
+	}
 
-  // typical case; list has >=1 elements
-	list->num_elements++;
-	list->head->prev = ln;
-	ln->prev = NULL;
-	ln->next = list->head;
-	list->head = ln;
-
-  // return success
+	// return success
   return true;
 }
 
@@ -110,34 +121,22 @@ bool PopLinkedList(LinkedList list, void **payload_ptr) {
   Assert333(list != NULL);
 
 	if (list->num_elements == 0) {
-		// called pop on an empty list; return failure
+		// called slice on an empty list; return failure
 		return false;
-	}
-	
-	// copy the value of the payload to return
-	*payload_ptr = list->head->payload;
-
-	if (list->num_elements == 1) {
-		// edge case; a list with single element
-		free(list->head);
-		list->head = list->tail = NULL;
 	} else {
-		// typical case; list has >= 2 elements
-		LinkedListNodePtr oldHead = list->head;
-		list->head = oldHead->next;
-		list->head->prev = NULL;
-		free(oldHead);
-		oldHead = NULL;
-	}
-	list->num_elements--;
+		// copy the value of the payload to return and pop the head
+		*payload_ptr = list->head->payload;
+		PopOrSliceLinkedList(list, payload_ptr, true);
 
-	// return success
-  return true;
+		// return success
+		return true;
+	}
 }
 
 bool AppendLinkedList(LinkedList list, void *payload) {
   // defensive programming: check argument for safety.
   Assert333(list != NULL);
+	Assert333(payload != NULL);
 
   // allocate space for the new node.
   LinkedListNodePtr ln =
@@ -151,23 +150,12 @@ bool AppendLinkedList(LinkedList list, void *payload) {
   ln->payload = payload;
 
   if (list->num_elements == 0) {
-    // degenerate case; list is currently empty
-    Assert333(list->head == NULL);  // debugging aid
-    Assert333(list->tail == NULL);  // debugging aid
-    ln->next = ln->prev = NULL;
-    list->head = list->tail = ln;
-    list->num_elements = 1U;
-
-		// return success
-    return true;
-  }
-
-  // typical case; list has >=1 elements
-	list->num_elements++;
-	list->tail->next = ln;
-	ln->next = NULL;
-	ln->prev = list->tail;
-	list->tail = ln;
+    // degenerate case; insert into empty list
+		InsertFirstNode(list, ln);
+  } else {
+  	// typical case; list has >=1 elements
+		PushOrAppendLinkedList(list, ln, false);
+	}
 
   // return success
   return true;
@@ -181,28 +169,64 @@ bool SliceLinkedList(LinkedList list, void **payload_ptr) {
 	if (list->num_elements == 0) {
 		// called slice on an empty list; return failure
 		return false;
+	} else {
+		// copy the value of the payload to return and slice the tail
+		*payload_ptr = list->tail->payload;
+		PopOrSliceLinkedList(list, payload_ptr, false);
+
+		// return success
+		return true;
 	}
+}
 
-	// copy the value of the payload to return
-	*payload_ptr = list->tail->payload;
+static void InsertFirstNode(LinkedList list, LinkedListNodePtr ln) {
+	Assert333(list->head == NULL); // debugging aid
+	Assert333(list->tail == NULL); // debugging aid
+	ln->next = ln->prev = NULL;
+	list->head = list->tail = ln;
+	list->num_elements = 1U;
+}
 
+static void PushOrAppendLinkedList(LinkedList list, LinkedListNodePtr ln, bool push)  {
+	if (push) {
+		// push to the head of the list
+		list->head->prev = ln;
+		ln->prev = NULL;
+		ln->next = list->head;
+		list->head = ln;
+	} else {
+		// append to the tail of the list
+		list->tail->next = ln;
+		ln->next = NULL;
+		ln->prev = list->tail;
+		list->tail = ln;
+	}
+	list->num_elements++;
+}
+
+static void PopOrSliceLinkedList(LinkedList list, void **payload_ptr, bool pop) {
 	if (list->num_elements == 1) {
-		// edge case; a list with single element
-		free(list->tail);
+		// edge case; a list with single element; list->head == list->tail
+		free(list->head);
 		list->head = list->tail = NULL;
 	} else {
 		// typical case; list has >= 2 elements
-		LinkedListNodePtr oldTail = list->tail;
-		list->tail = oldTail->prev;
-		list->tail->next = NULL;
-		free(oldTail);
-		oldTail = NULL;
-		
+		LinkedListNodePtr oldNode;
+		if (pop) {
+			// pop the head of the list
+			oldNode = list->head;
+			list->head = oldNode->next;
+			list->head->prev = NULL;
+		} else {
+			// slice the tail of the list
+			oldNode = list->tail;
+			list->tail = oldNode->prev;
+			list->tail->next = NULL;
+		}
+		free(oldNode);
+		oldNode = NULL;
 	}
 	list->num_elements--;
-
-	// return success
-  return true;
 }
 
 void SortLinkedList(LinkedList list, unsigned int ascending,
