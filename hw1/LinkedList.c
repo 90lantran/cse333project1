@@ -38,9 +38,16 @@ static void PushOrAppendLinkedList(LinkedList list, LinkedListNodePtr ln, bool p
 
 // Internal helper method that either pops the head of the list, or
 // slices the tail of the list, depending on the parameter value of pop.
-// Prior to the call, the parameters must be checked for non-nullness, and
-// also must be made sure that the list contains 1 or more elements.
-static void PopOrSliceLinkedList(LinkedList list, void **payload_ptr, bool pop);
+// Prior to the call, the list must be checked for non-nullness, and
+// also must be made sure that it contains 1 or more elements.
+static void PopOrSliceLinkedList(LinkedList list, bool pop);
+
+// Internal helper method that checks that:
+//		1) Iterator itself is not NULL
+//		2) The list that the iterator is pointing to is not NULL
+//		3) The node that the iterator is pointing to is not NULL
+void CheckValidIterator(LLIter iter);
+
 
 LinkedList AllocateLinkedList(void) {
   // allocate the linked list record
@@ -126,7 +133,7 @@ bool PopLinkedList(LinkedList list, void **payload_ptr) {
 	} else {
 		// copy the value of the payload to return and pop the head
 		*payload_ptr = list->head->payload;
-		PopOrSliceLinkedList(list, payload_ptr, true);
+		PopOrSliceLinkedList(list, true);
 
 		// return success
 		return true;
@@ -166,13 +173,13 @@ bool SliceLinkedList(LinkedList list, void **payload_ptr) {
   Assert333(payload_ptr != NULL);
   Assert333(list != NULL);
 
-	if (list->num_elements == 0) {
+	if (NumElementsInLinkedList(list) == 0U) {
 		// called slice on an empty list; return failure
 		return false;
 	} else {
 		// copy the value of the payload to return and slice the tail
 		*payload_ptr = list->tail->payload;
-		PopOrSliceLinkedList(list, payload_ptr, false);
+		PopOrSliceLinkedList(list, false);
 
 		// return success
 		return true;
@@ -204,8 +211,8 @@ static void PushOrAppendLinkedList(LinkedList list, LinkedListNodePtr ln, bool p
 	list->num_elements++;
 }
 
-static void PopOrSliceLinkedList(LinkedList list, void **payload_ptr, bool pop) {
-	if (list->num_elements == 1) {
+static void PopOrSliceLinkedList(LinkedList list, bool pop) {
+	if (NumElementsInLinkedList(list) == 1U) {
 		// edge case; a list with single element; list->head == list->tail
 		free(list->head);
 		list->head = list->tail = NULL;
@@ -299,71 +306,54 @@ void LLIteratorFree(LLIter iter) {
 
 bool LLIteratorHasNext(LLIter iter) {
   // defensive programming
-  Assert333(iter != NULL);
-  Assert333(iter->list != NULL);
-  Assert333(iter->node != NULL);
+	CheckValidIterator(iter);
 
   // Is there another node beyond the iterator?
-  if (iter->node->next == NULL)
-    return false;  // no
-
-  return true;  // yes
+	return iter->node->next != NULL;
 }
 
 bool LLIteratorNext(LLIter iter) {
   // defensive programming
-  Assert333(iter != NULL);
-  Assert333(iter->list != NULL);
-  Assert333(iter->node != NULL);
+	CheckValidIterator(iter);
 
-  // if there is another node beyond the iterator, advance to it,
-  // and return true.
 	if (iter->list->tail != iter->node) {
 		// iterator not on the tail; iterate to the next node
+		// and return success
 		iter->node = iter->node->next;
 		return true;
 	}
 
-  // Nope, there isn't another node, so return failure.
+  // nope, there isn't another node, so return failure.
   return false;
 }
 
 bool LLIteratorHasPrev(LLIter iter) {
   // defensive programming
-  Assert333(iter != NULL);
-  Assert333(iter->list != NULL);
-  Assert333(iter->node != NULL);
+	CheckValidIterator(iter);
 
-  // Is there another node beyond the iterator?
-  if (iter->node->prev == NULL)
-    return false;  // no
-
-  return true;  // yes
+  // Is there a node preceeding the iterator?
+	return iter->node->prev != NULL;
 }
 
 bool LLIteratorPrev(LLIter iter) {
   // defensive programming
-  Assert333(iter != NULL);
-  Assert333(iter->list != NULL);
-  Assert333(iter->node != NULL);
+	CheckValidIterator(iter);
 
-  // if there is another node beyond the iterator, advance to it,
-  // and return true.
 	if (iter->list->head != iter->node) {
 		// iterator not on the head; iterate to the previous node
+		// and return success
 		iter->node = iter->node->prev;
 		return true;
 	}	
 
-  // nope, so return failure.
+  // nope, there isn't a preceeding node, so return failure.
   return false;
 }
 
 void LLIteratorGetPayload(LLIter iter, void **payload) {
   // defensive programming
-  Assert333(iter != NULL);
-  Assert333(iter->list != NULL);
-  Assert333(iter->node != NULL);
+	CheckValidIterator(iter);
+	Assert333(payload != NULL);
 
   // set the return parameter.
   *payload = iter->node->payload;
@@ -372,9 +362,8 @@ void LLIteratorGetPayload(LLIter iter, void **payload) {
 bool LLIteratorDelete(LLIter iter,
                       LLPayloadFreeFnPtr payload_free_function) {
   // defensive programming
-  Assert333(iter != NULL);
-  Assert333(iter->list != NULL);
-  Assert333(iter->node != NULL);
+	CheckValidIterator(iter);
+	Assert333(payload_free_function != NULL);
 
 	// free the payload of the current node
 	payload_free_function(iter->node->payload);
@@ -389,23 +378,15 @@ bool LLIteratorDelete(LLIter iter,
 		iter->list->num_elements--;
 	} else if (LLIteratorHasNext(iter)) {
 		// degenerate case: iter points at head
-		iter->node = iter->node->next;
-		iter->list->head = iter->node;
-		free(iter->node->prev);
-		iter->node->prev = NULL;
-		iter->list->num_elements--;
+		PopOrSliceLinkedList(iter->list, true);
+		iter->node = iter->list->head;
 	} else if (LLIteratorHasPrev(iter)) {
 		// degenerate case: iter points at tail
-		iter->node = iter->node->prev;
-		iter->list->tail = iter->node;
-		free(iter->node->next);
-		iter->node->next = NULL;
-		iter->list->num_elements--;
+		PopOrSliceLinkedList(iter->list, false);
+		iter->node = iter->list->tail;
 	} else {
 		// degenerate case: the list becomes empty after deleting
-		iter->list->head = iter->list->tail = NULL;
-		iter->list->num_elements--;
-		free(iter->node);
+		PopOrSliceLinkedList(iter->list, true);
 		iter->node = NULL;
 
 		// return failure
@@ -418,9 +399,8 @@ bool LLIteratorDelete(LLIter iter,
 
 bool LLIteratorInsertBefore(LLIter iter, void *payload) {
   // defensive programming
-  Assert333(iter != NULL);
-  Assert333(iter->list != NULL);
-  Assert333(iter->node != NULL);
+	CheckValidIterator(iter);
+	Assert333(payload != NULL);
 
   // If the cursor is pointing at the head, use our
   // PushLinkedList function.
@@ -441,4 +421,10 @@ bool LLIteratorInsertBefore(LLIter iter, void *payload) {
   newnode->next->prev = newnode;
   iter->list->num_elements += 1;
   return true;
+}
+
+void CheckValidIterator(LLIter iter) {
+  Assert333(iter != NULL);
+  Assert333(iter->list != NULL);
+  Assert333(iter->node != NULL);
 }
