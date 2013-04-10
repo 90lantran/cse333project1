@@ -24,25 +24,25 @@
 #include "LinkedList.h"
 #include "LinkedList_priv.h"
 
-// Internal helper method that inserts a node into an empty linked list.
+// Internal helper function that inserts a node into an empty linked list.
 // Prior to the call, the node must be already allocated and its payload
 // must be set. It must also be made sure that the list is empty.
 static void InsertFirstNode(LinkedList list, LinkedListNodePtr ln);
 
-// Internal helper method that either pushes to the head of the list, or
+// Internal helper function that either pushes to the head of the list, or
 // appends to the tail of the list, depending on the parameter value of push.
 // Prior to the call, the node must be already allocated and its payload
 // must be set. It must also be made sure that the list contains 1 or more
 // elements.
 static void PushOrAppendLinkedList(LinkedList list, LinkedListNodePtr ln, bool push);
 
-// Internal helper method that either pops the head of the list, or
+// Internal helper function that either pops the head of the list, or
 // slices the tail of the list, depending on the parameter value of pop.
 // Prior to the call, the list must be checked for non-nullness, and
 // also must be made sure that it contains 1 or more elements.
 static void PopOrSliceLinkedList(LinkedList list, bool pop);
 
-// Internal helper method that checks that:
+// Internal helper function to check:
 //		1) Iterator itself is not NULL
 //		2) The list that the iterator is pointing to is not NULL
 //		3) The node that the iterator is pointing to is not NULL

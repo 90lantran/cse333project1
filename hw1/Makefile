@@ -5,8 +5,8 @@ CC = gcc
 CXX = g++
 
 # define useful flags to cc/ld/etc.
-CFLAGS += -g -Wall -I. -I.. -O0
-LDFLAGS += -L. -lhw1
+CFLAGS += -g -Wall -I. -I.. -O0 -fprofile-arcs -ftest-coverage
+LDFLAGS += -L. -lhw1 -fprofile-arcs -ftest-coverage
 CPPUNITFLAGS = -L../gtest -lgtest
 
 # define common dependencies
@@ -18,6 +18,10 @@ TESTHEADERS = test_linkedlist.h test_hashtable.h
 # compile everything; this is the default rule that fires if a user
 # just types "make" in the same directory as this Makefile
 all: test_suite example_program_ll example_program_ht FORCE
+	./test_suite
+	 gcov LinkedList.c
+	 gcov HashTable.c
+	 @echo "Look at LinkedList.c.gcov and HashTable.c.gov for coverage data."
 
 example_program_ll: example_program_ll.o libhw1.a $(HEADERS) FORCE
 	$(CC) $(CFLAGS) -o example_program_ll example_program_ll.o $(LDFLAGS)
@@ -36,10 +40,10 @@ test_suite: $(TESTOBJS) $(TESTHEADERS) libhw1.a FORCE
 	$(CXX) $(CFLAGS) -c $<
 
 %.o: %.c $(HEADERS) FORCE
-	$(CC) $(CFLAGS) -c -std=gnu99 $<
+	$(CC) $(CFLAGS) -c -std=c99 $<
 
 clean: FORCE
 	/bin/rm -f *.o *~ *.gcno *.gcda *.gcov test_suite libhw1.a \
-    example_program_ll example_program_ht
+    example_program_ll example_program_ht image_hist
 
 FORCE:
