@@ -160,6 +160,7 @@ int InsertHashTable(HashTable table, HTKeyValue newkeyvalue, HTKeyValue *oldkeyv
   LinkedList insertchain;
 
   Assert333(table != NULL);
+	Assert333(oldkeyvalue != NULL);
   ResizeHashtable(table);
 
 	// calculate which bucket we're inserting into,
