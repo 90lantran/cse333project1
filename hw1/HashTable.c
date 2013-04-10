@@ -386,7 +386,7 @@ int HTIteratorNext(HTIter iter) {
 
 	// iterator points to the tail of the current bucket
   for (i = iter->bucket_num + 1; i < iter->ht->num_buckets; i++) {
-    if (NumElementsInLinkedList(table->buckets[i]) > 0) {
+    if (NumElementsInLinkedList(iter->ht->buckets[i]) > 0) {
       iter->bucket_num = i;
       break;
     }
@@ -403,7 +403,7 @@ int HTIteratorNext(HTIter iter) {
 	} else {
 		// general case; the iterator moves onto the next bucket
 		iter->bucket_num = i;
-	  iter->bucket_it = LLMakeIterator(table->buckets[iter->bucket_num], 0UL);
+	  iter->bucket_it = LLMakeIterator(iter->ht->buckets[iter->bucket_num], 0UL);
   	if (iter->bucket_it == NULL) {
     	// out of memory!
 			iter->is_valid = false;
@@ -432,12 +432,18 @@ int HTIteratorPastEnd(HTIter iter) {
 }
 
 int HTIteratorGet(HTIter iter, HTKeyValue *keyvalue) {
+	HTKeyValue *payload;
   Assert333(iter != NULL);
 
-  // Step 6 -- implement HTIteratorGet.
+	// check to see if table is empty or iterator is invalid
+	if (HTIteratorPastEnd(iter) == 1) {
+		return 0;
+	}
 
-
-  return 0;  // you might need to change this return value.
+	// get the payload and copy the values into keyvalue
+	LLIteratorGetPayload(iter->bucket_it,(void **) &payload);
+	*keyvalue = *payload;
+  return 1;
 }
 
 int HTIteratorDelete(HTIter iter, HTKeyValue *keyvalue) {
