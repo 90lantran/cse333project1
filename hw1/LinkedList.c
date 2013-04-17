@@ -37,7 +37,6 @@ LinkedList AllocateLinkedList(void) {
 	ll->num_elements = 0;
 	ll->head = NULL;
 	ll->tail = NULL;
-	// should i allocate the linkedlistnode head and tail too? TODO
 
   // return our newly minted linked list
   return ll;
