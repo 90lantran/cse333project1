@@ -127,7 +127,6 @@ bool PopLinkedList(LinkedList list, void **payload_ptr) {
 	**payload_ptr = *list->head->payload;
 	free(list->head->payload);
 
-
 	if (list->num_elements == 1) {
 		// edge case; a list with single element
 		free(list->head);
@@ -193,7 +192,6 @@ bool SliceLinkedList(LinkedList list, void **payload_ptr) {
   // Step 6: implement SliceLinkedList.
 	**payload_ptr = *list->tail->payload;
 	free(list->tail->payload);
-
 
 	if (list->num_elements == 1) {
 		// edge case; a list with single element
@@ -301,8 +299,11 @@ bool LLIteratorNext(LLIter iter) {
 
   // Step 7: if there is another node beyond the iterator, advance to it,
   // and return true.
-
-
+	if (itr->list->tail != itr->node) {
+		// iterator not on the tail; iterate to the next node
+		itr->node = itr->node->next;
+		return true;
+	}
 
   // Nope, there isn't another node, so return failure.
   return false;
