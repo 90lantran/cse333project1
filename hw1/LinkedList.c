@@ -153,8 +153,35 @@ bool AppendLinkedList(LinkedList list, void *payload) {
   // PushLinkedList, but obviously you need to add to the end
   // instead of the beginning.
 
+  // allocate space for the new node.
+  LinkedListNodePtr ln =
+    (LinkedListNodePtr) malloc(sizeof(LinkedListNode));
+  if (ln == NULL) {
+    // out of memory
+    return false;
+  }
 
+  // set the payload
+  ln->payload = payload;
 
+  if (list->num_elements == 0) {
+    // degenerate case; list is currently empty
+    Assert333(list->head == NULL);  // debugging aid
+    Assert333(list->tail == NULL);  // debugging aid
+    ln->next = ln->prev = NULL;
+    list->head = list->tail = ln;
+    list->num_elements = 1U;
+    return true;
+  }
+
+  // typical case; list has >=1 elements
+	list->num_elements++;
+	list->tail->next = ln;
+	ln->next = NULL;
+	ln->prev = list->tail;
+	list->tail = ln;
+
+  // return success
   return true;
 }
 
