@@ -34,7 +34,9 @@ LinkedList AllocateLinkedList(void) {
 
   // Step 1.
   // initialize the newly allocated record structure
-
+	ll->num_elements = 0;
+	ll->head = NULL;
+	ll->tail = NULL;	
 
 
   // return our newly minted linked list
