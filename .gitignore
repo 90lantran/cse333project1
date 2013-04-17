@@ -15,3 +15,7 @@
 *.exe
 *.out
 *.app
+
+# Not sure
+*.swp
+.DS_Store

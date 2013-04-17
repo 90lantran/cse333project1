@@ -53,6 +53,11 @@ void FreeLinkedList(LinkedList list,
   // sweep through the list and free all of the nodes' payloads as
   // well as the nodes themselves
   while (list->head != NULL) {
+		payload_free_function(list->head->payload);
+		LinkedListNodePtr next = list->head->next;
+		// is this okay for when there is only one node left??
+		free(list->head);
+		list->head = next;	
   }
 
   // free the list record
@@ -94,6 +99,7 @@ bool PushLinkedList(LinkedList list, void *payload) {
 
   // STEP 3.
   // typical case; list has >=1 elements
+	
 
 
 
