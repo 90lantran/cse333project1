@@ -330,8 +330,11 @@ bool LLIteratorPrev(LLIter iter) {
 
   // Step 8:  if there is another node beyond the iterator, advance to it,
   // and return true.
-
-
+	if (itr->list->head != itr->node) {
+		// iterator not on the head; iterate to the previous node
+		itr->node = itr->node->prev;
+		return true;
+	}	
 
   // nope, so return failure.
   return false;
