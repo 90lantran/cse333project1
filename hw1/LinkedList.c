@@ -180,7 +180,7 @@ bool AppendLinkedList(LinkedList list, void *payload) {
 	ln->next = NULL;
 	ln->prev = list->tail;
 	list->tail = ln;
-
+d
   // return success
   return true;
 }
