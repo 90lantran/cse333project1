@@ -36,8 +36,8 @@ LinkedList AllocateLinkedList(void) {
   // initialize the newly allocated record structure
 	ll->num_elements = 0;
 	ll->head = NULL;
-	ll->tail = NULL;	
-
+	ll->tail = NULL;
+	// should i allocate the linkedlistnode head and tail too? TODO
 
   // return our newly minted linked list
   return ll;
@@ -55,9 +55,8 @@ void FreeLinkedList(LinkedList list,
   while (list->head != NULL) {
 		payload_free_function(list->head->payload);
 		LinkedListNodePtr next = list->head->next;
-		// is this okay for when there is only one node left??
 		free(list->head);
-		list->head = next;	
+		list->head = next;
   }
 
   // free the list record
@@ -121,8 +120,30 @@ bool PopLinkedList(LinkedList list, void **payload_ptr) {
   // Be sure to call free() to deallocate the memory that was
   // previously allocated by PushLinkedList().
 
+	// given an ADRESS OF THE PAYLOAD PTR
+	
+	if (list->num_elements == 0) {
+		// popping on an empty list results in failure
+		return false;
+	}
+	
+	// copy the value of the payload and free payload 
+	**payload_ptr = *list->head->payload;
+	free(list->head->payload);
 
 
+	if (list->num_elements == 1) {
+		// edge case; a list with single element
+		free(list->head);
+		free(list);
+	} else {
+		// typical case; list has >= 2 elementsa
+		list->head = list->head->next;
+		list->head->prev = NULL;
+		list->num_elements--;
+	}
+
+	// return success
   return true;
 }
 
