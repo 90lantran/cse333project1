@@ -180,7 +180,7 @@ bool AppendLinkedList(LinkedList list, void *payload) {
 	ln->next = NULL;
 	ln->prev = list->tail;
 	list->tail = ln;
-d
+
   // return success
   return true;
 }
@@ -191,9 +191,24 @@ bool SliceLinkedList(LinkedList list, void **payload_ptr) {
   Assert333(list != NULL);
 
   // Step 6: implement SliceLinkedList.
+	**payload_ptr = *list->tail->payload;
+	free(list->tail->payload);
 
 
+	if (list->num_elements == 1) {
+		// edge case; a list with single element
+		free(list->tail);
+		free(list);
+	} else {
+		// typical case; list has >= 2 elements
+		ListNodePtr tail = list->tail->prev;
+		free(list->tail);
+		list->tail = tail;
+		tail->next = NULL;
+		list->num_elements--;
+	}
 
+	// return success
   return true;
 }
 
