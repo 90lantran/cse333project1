@@ -118,9 +118,6 @@ bool PopLinkedList(LinkedList list, void **payload_ptr) {
   // and (b) the general case of a list with >=2 elements in it.
   // Be sure to call free() to deallocate the memory that was
   // previously allocated by PushLinkedList().
-
-	// given an ADRESS OF THE PAYLOAD PTR
-	
 	if (list->num_elements == 0) {
 		// popping on an empty list results in failure
 		return false;
@@ -136,9 +133,11 @@ bool PopLinkedList(LinkedList list, void **payload_ptr) {
 		free(list->head);
 		free(list);
 	} else {
-		// typical case; list has >= 2 elementsa
-		list->head = list->head->next;
-		list->head->prev = NULL;
+		// typical case; list has >= 2 elements
+		ListNodePtr head = list->head->next;
+		free(list->head);
+		list->head = head;
+		head->prev = NULL;
 		list->num_elements--;
 	}
 
