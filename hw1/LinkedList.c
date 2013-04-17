@@ -99,9 +99,11 @@ bool PushLinkedList(LinkedList list, void *payload) {
 
   // STEP 3.
   // typical case; list has >=1 elements
-	
-
-
+	list->num_elements++;
+	list->head->prev = ln;
+	ln->prev = NULL;
+	ln->next = list->head;
+	list->head = ln;
 
   // return success
   return true;
