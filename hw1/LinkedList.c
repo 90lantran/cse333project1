@@ -124,7 +124,7 @@ bool PopLinkedList(LinkedList list, void **payload_ptr) {
 	}
 	
 	// copy the value of the payload and free payload 
-	**payload_ptr = *list->head->payload;
+	*payload_ptr = list->head->payload;
 	free(list->head->payload);
 
 	if (list->num_elements == 1) {
@@ -133,7 +133,7 @@ bool PopLinkedList(LinkedList list, void **payload_ptr) {
 		free(list);
 	} else {
 		// typical case; list has >= 2 elements
-		ListNodePtr head = list->head->next;
+		LinkedListNodePtr head = list->head->next;
 		free(list->head);
 		list->head = head;
 		head->prev = NULL;
@@ -190,7 +190,7 @@ bool SliceLinkedList(LinkedList list, void **payload_ptr) {
   Assert333(list != NULL);
 
   // Step 6: implement SliceLinkedList.
-	**payload_ptr = *list->tail->payload;
+	*payload_ptr = list->tail->payload;
 	free(list->tail->payload);
 
 	if (list->num_elements == 1) {
@@ -199,7 +199,7 @@ bool SliceLinkedList(LinkedList list, void **payload_ptr) {
 		free(list);
 	} else {
 		// typical case; list has >= 2 elements
-		ListNodePtr tail = list->tail->prev;
+		LinkedListNodePtr tail = list->tail->prev;
 		free(list->tail);
 		list->tail = tail;
 		tail->next = NULL;
@@ -299,9 +299,9 @@ bool LLIteratorNext(LLIter iter) {
 
   // Step 7: if there is another node beyond the iterator, advance to it,
   // and return true.
-	if (itr->list->tail != itr->node) {
+	if (iter->list->tail != iter->node) {
 		// iterator not on the tail; iterate to the next node
-		itr->node = itr->node->next;
+		iter->node = iter->node->next;
 		return true;
 	}
 
@@ -330,9 +330,9 @@ bool LLIteratorPrev(LLIter iter) {
 
   // Step 8:  if there is another node beyond the iterator, advance to it,
   // and return true.
-	if (itr->list->head != itr->node) {
+	if (iter->list->head != iter->node) {
 		// iterator not on the head; iterate to the previous node
-		itr->node = itr->node->prev;
+		iter->node = iter->node->prev;
 		return true;
 	}	
 
@@ -371,33 +371,33 @@ bool LLIteratorDelete(LLIter iter,
   // the iterator is pointing to, and also free any LinkedList
   // data structure element as appropriate.
 	
-	payload_free_function(itr->node->payload);
+	payload_free_function(iter->node->payload);
 	
-	if (itr->node->prev == NULL && itr->node->next == NULL) {
+	if (iter->node->prev == NULL && iter->node->next == NULL) {
 		// degenerate case; list will become empty
 		// deallocate the list and return false
-		FreeLinkedList(itr->list, payload_free_function);
+		FreeLinkedList(iter->list, payload_free_function);
 		return false;
 	} else {
-		if (itr->node->prev == null) {
+		if (iter->node->prev == NULL) {
 			// degenerate case; itr points at head
-			LinkedListNode head = itr->node->next;
-			free(itr->node);
-			itr->list->head = head;
-			itr->node = head;
-		} else if (itr->node->next == NULL) {
+			iter->list->head = iter->list->head->next;
+			free(iter->node);
+			iter->list->head->prev = NULL;
+			iter->node = iter->list->head;
+		} else if (iter->node->next == NULL) {
 			// degenerate case; itr points at tail
-			LunkedListNode tail = itr->node->prev;
-			free(itr->node);
-			itr->list->tail = tail;
-			itr->node = tail;
+			iter->list->tail = iter->list->tail->prev;
+			free(iter->node);
+			iter->list->tail->next = NULL;
+			iter->node = iter->list->tail;
 		} else {
 			// general case; itr points at middle
-			LinkedListNode successor = itr->node->next;
-			successor->prev = itr->node->prev;
-			itr->node->prev->next = successor;
-			free(itr->node);
-			itr->node = successor;
+			LinkedListNode successor = iter->node->next;
+			successor->prev = iter->node->prev;
+			iter->node->prev->next = successor;
+			free(iter->node);
+			iter->node = successor;
 		}
 
 		// return success
