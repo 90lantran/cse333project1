@@ -370,10 +370,37 @@ bool LLIteratorDelete(LLIter iter,
   // Be sure to call the payload_free_function to free the payload
   // the iterator is pointing to, and also free any LinkedList
   // data structure element as appropriate.
+	
+	payload_free_function(itr->node->payload);
+	
+	if (itr->node->prev == NULL && itr->node->next == NULL) {
+		// degenerate case; list will become empty
+		// deallocate the list and return false
+		FreeLinkedList(itr->list, payload_free_function);
+		return false;
+	} else {
+		if (itr->node->prev == null) {
+			// degenerate case; itr points at head
+			LinkedListNode head = itr->node->next;
+			free(itr->node);
+			itr->list->head = head;
+			itr->node = head;
+		} else if (itr->node->next == NULL) {
+			// degenerate case; itr points at tail
+			LunkedListNode tail = itr->node->prev;
+			free(itr->node);
+			itr->list->tail = tail;
+			itr->node = tail;
+		} else {
+			// general case; itr points at middle
+			LinkedListNode successor = itr->node->next;
+			free(itr->node);
+			itr->node = successor;
+		}
 
-
-
-  return true;
+		// return success
+		return true;
+	}
 }
 
 bool LLIteratorInsertBefore(LLIter iter, void *payload) {
