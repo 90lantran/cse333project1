@@ -393,7 +393,7 @@ bool LLIteratorDelete(LLIter iter,
 			iter->node = iter->list->tail;
 		} else {
 			// general case; itr points at middle
-			LinkedListNode successor = iter->node->next;
+			LinkedListNodePtr successor = iter->node->next;
 			successor->prev = iter->node->prev;
 			iter->node->prev->next = successor;
 			free(iter->node);
