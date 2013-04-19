@@ -125,18 +125,19 @@ bool PopLinkedList(LinkedList list, void **payload_ptr) {
 	
 	// copy the value of the payload and free payload 
 	*payload_ptr = list->head->payload;
-	free(list->head->payload);
 
 	if (list->num_elements == 1) {
 		// edge case; a list with single element
 		free(list->head);
 		free(list);
+		list->head = NULL;
+		list = NULL;
 	} else {
 		// typical case; list has >= 2 elements
 		LinkedListNodePtr head = list->head->next;
 		free(list->head);
 		list->head = head;
-		head->prev = NULL;
+		list->head->prev = NULL;
 		list->num_elements--;
 	}
 
