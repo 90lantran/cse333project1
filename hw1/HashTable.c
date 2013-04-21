@@ -156,6 +156,7 @@ int InsertHashTable(HashTable table,
                     HTKeyValue *oldkeyvalue) {
   uint32_t insertbucket;
   LinkedList insertchain;
+	LLIter *iter;
 
   Assert333(table != NULL);
   ResizeHashtable(table);
@@ -171,9 +172,78 @@ int InsertHashTable(HashTable table,
   // and optionally remove a key within a chain, rather than putting
   // all that logic inside here.  You might also find that your helper
   // can be reused in steps 2 and 3.
+	Assert333(insertchain != NULL);
+	HTKeyValuePtr payload_ptr = (HTKeyValuePtr) malloc(sizeof(HTKeyValue));
+	if (payload_ptr == NULL) {
+		return 0;
+	}
+	
+	int result = LookupKey(insertchain, newkeyvalue->key, iter);
+	if (result == -1) {
+		// prevent memory leak and return failure
+		free(payload_ptr);
+		payload_ptr = NULL;
+		LLIteratorFree(iter);
+		iter = NULL;
+		return 0;
+	} else if (result == 0) {
+		// no existing key/value with that key; append new keyvalue to list
+		if (AppendLinkedList(insertchain, (void *) newkeyvalue)) {
+			LLIteratorFree(iter);
+			iter = NULL;
+			// return success
+			return 1;
+		} else {
+			// append failed; return failure and prevent memory leak
+			free(payload_ptr);
+			payload_ptr = NULL;
+			LLIteratorFree(iter);
+			iter = NULL;
+			return 0;
+		}
+	} else {
+		// found existing key/value with that key; replace keyvalue
+		//TODO
+		// 1) copy over the values
+		// 2) 'replace' with the new node
+		// 2) free the old node, free the keyvalue
+		// copy over the values of the HTKeyValue stored in oldnode
+		oldkeyvalue->value = iter->node->payload->value;
+		iter->node->payload->value = newkeyvalue->value;
+		LLIteratorFree(iter);
+		iter = NULL;
+		return 2;
+	}
+}
 
+int LookupKey(LinkedList list, uint64_t key, LLIter *iter/*, bool remove*/) {
+	Assert(list != NULL);
+	
+	if (list->num_elements == 0) {
+		//  empty list; return key not found
+		return 0;
+	}
 
-  return 0;  // You may need to change this return value.
+	// get a LinkedList iterator starting from its head
+	*iter = LLMakeIterator(list, 0);
+
+	if (iter == NULL) {
+		// since the list wasn't empty, implies memory error
+		return -1;
+	} else {
+		// continue with procedure with valid iterator pointing to the head
+		// of a list with >= 1 elements
+		HTKeyValue **payload;
+		LLIteratorGetPayload(*iter, (void **) payload);
+		
+		while (*payload->key != key) {
+			if (!LLIteratorNext(*iter))
+				return 0;
+		}
+		
+		// return success
+		return 1;
+	}
 }
 
 int LookupHashTable(HashTable table,
